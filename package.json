@@ -3,8 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "android:build": "npm run build:mobile && npx cap build android",
+    "android:dev": "npm run build:mobile && npx cap run android",
+    "android:open": "npx cap open android",
     "build": "next build",
-    "build:mobile": "npm run export && npx cap sync",
+    "build:mobile": "npm run build && npx cap sync",
     "cap:add": "npx cap add",
     "cap:copy": "npx cap copy",
     "cap:open": "npx cap open",
