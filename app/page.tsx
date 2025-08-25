@@ -40,6 +40,7 @@ export default function AudioNotesApp() {
   const [savedNotes, setSavedNotes] = useState<SavedNote[]>([])
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false)
+  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null)
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -240,38 +241,55 @@ export default function AudioNotesApp() {
 
   if (currentView === "notes") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 p-4">
-        <div className="max-w-4xl mx-auto space-y-6">
+      <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-accent/5 p-4">
+        <div className="max-w-4xl mx-auto space-y-8">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900">My Notes</h1>
-              <p className="text-slate-600">Manage your saved audio notes</p>
+            <div className="space-y-2">
+              <h1 className="text-4xl font-black text-foreground tracking-tight">My Notes</h1>
+              <p className="text-muted-foreground text-lg">Manage your saved audio insights</p>
             </div>
-            <Button onClick={() => setCurrentView("record")} variant="outline">
+            <Button
+              onClick={() => setCurrentView("record")}
+              variant="outline"
+              className="glass-effect hover:bg-accent/10 transition-all duration-200"
+            >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Recording
             </Button>
           </div>
 
           {savedNotes.length === 0 ? (
-            <Card className="border-0 shadow-lg">
-              <CardContent className="text-center py-12">
-                <BookOpen className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">No notes yet</h3>
-                <p className="text-slate-600 mb-4">Start recording to create your first note</p>
-                <Button onClick={() => setCurrentView("record")} className="bg-blue-600 hover:bg-blue-700">
-                  <Mic className="h-4 w-4 mr-2" />
+            <Card className="glass-effect border-0 shadow-2xl note-card-enter">
+              <CardContent className="text-center py-16">
+                <div className="w-20 h-20 bg-gradient-to-br from-accent/20 to-accent/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <BookOpen className="h-10 w-10 text-accent" />
+                </div>
+                <h3 className="text-2xl font-bold text-foreground mb-3">No notes yet</h3>
+                <p className="text-muted-foreground text-lg mb-8 max-w-md mx-auto">
+                  Start recording to create your first intelligent note with AI-powered insights
+                </p>
+                <Button
+                  onClick={() => setCurrentView("record")}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-3 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                >
+                  <Mic className="h-5 w-5 mr-3" />
                   Start Recording
                 </Button>
               </CardContent>
             </Card>
           ) : (
             <div className="grid gap-6">
-              {savedNotes.map((note) => (
-                <Card key={note.id} className="border-0 shadow-lg">
-                  <CardHeader>
+              {savedNotes.map((note, index) => (
+                <Card
+                  key={note.id}
+                  className={`glass-effect border-0 shadow-xl hover:shadow-2xl transition-all duration-300 note-card-enter ${
+                    expandedNoteId === note.id ? "ring-2 ring-accent/20" : ""
+                  }`}
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                >
+                  <CardHeader className="pb-4">
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
+                      <div className="flex-1 space-y-3">
                         {editingNoteId === note.id ? (
                           <Input
                             defaultValue={note.title}
@@ -281,87 +299,170 @@ export default function AudioNotesApp() {
                                 updateNoteTitle(note.id, e.currentTarget.value)
                               }
                             }}
-                            className="text-lg font-semibold"
+                            className="text-xl font-bold bg-transparent border-2 border-accent/30 focus:border-accent"
                             autoFocus
                           />
                         ) : (
                           <CardTitle
-                            className="text-slate-900 cursor-pointer"
+                            className="text-xl font-bold text-foreground cursor-pointer hover:text-accent transition-colors duration-200 leading-tight"
                             onClick={() => setEditingNoteId(note.id)}
                           >
                             {note.title}
                           </CardTitle>
                         )}
-                        <CardDescription>
-                          {new Date(note.createdAt).toLocaleDateString()} at{" "}
-                          {new Date(note.createdAt).toLocaleTimeString()}
-                        </CardDescription>
+
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-accent rounded-full"></div>
+                            <span className="font-medium">
+                              {new Date(note.createdAt).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-muted-foreground/40 rounded-full"></div>
+                            <span>
+                              {new Date(note.createdAt).toLocaleTimeString("en-US", {
+                                hour: "numeric",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                        </div>
+
+                        {expandedNoteId !== note.id && (
+                          <div className="space-y-3">
+                            <p className="text-muted-foreground leading-relaxed">
+                              {note.transcription.length > 120
+                                ? `${note.transcription.substring(0, 120)}...`
+                                : note.transcription}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary" className="text-xs font-medium">
+                                {note.analysis.keyPoints.length} key points
+                              </Badge>
+                              {note.analysis.constraintQuestions && note.analysis.constraintQuestions.length > 0 && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-xs font-medium border-amber-200 text-amber-700"
+                                >
+                                  {note.analysis.constraintQuestions.length} considerations
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div className="flex gap-2">
-                        <Button variant="ghost" size="sm" onClick={() => setEditingNoteId(note.id)}>
+
+                      <div className="flex gap-2 ml-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingNoteId(note.id)}
+                          className="hover:bg-accent/10 hover:text-accent transition-all duration-200"
+                        >
                           <Edit3 className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => deleteNote(note.id)}
-                          className="text-red-600 hover:text-red-700"
+                          className="hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <h4 className="font-semibold text-slate-900 mb-2">Transcription</h4>
-                      <p className="text-slate-700 text-sm leading-relaxed bg-slate-50 p-3 rounded-lg">
-                        {note.transcription}
-                      </p>
-                    </div>
 
-                    <div>
-                      <h4 className="font-semibold text-slate-900 mb-2">Key Points</h4>
-                      <div className="space-y-2">
-                        {note.analysis.keyPoints.map((point, index) => (
-                          <div key={index} className="flex items-start gap-2">
-                            <Badge variant="secondary" className="mt-1 text-xs">
-                              {index + 1}
-                            </Badge>
-                            <div>
-                              <p className="font-medium text-sm">{point.title}</p>
-                              <p className="text-slate-600 text-xs">{point.description}</p>
-                            </div>
-                          </div>
-                        ))}
+                  {expandedNoteId === note.id ? (
+                    <CardContent className="space-y-6 note-expand">
+                      <div className="bg-muted/30 rounded-xl p-6 space-y-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-3 h-3 bg-accent rounded-full"></div>
+                          <h4 className="font-bold text-foreground text-lg">Full Transcription</h4>
+                        </div>
+                        <p className="text-foreground leading-relaxed text-base">{note.transcription}</p>
                       </div>
-                    </div>
 
-                    {note.analysis.projectAnalysis && (
-                      <div>
-                        <h4 className="font-semibold text-slate-900 mb-2">Project Analysis</h4>
-                        <p className="text-slate-700 text-sm leading-relaxed bg-slate-50 p-3 rounded-lg">
-                          {note.analysis.projectAnalysis}
-                        </p>
-                      </div>
-                    )}
-
-                    {note.analysis.constraintQuestions && note.analysis.constraintQuestions.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-slate-900 mb-2">Important Considerations</h4>
-                        <div className="space-y-2">
-                          {note.analysis.constraintQuestions.map((question, index) => (
-                            <div key={index} className="flex items-start gap-2">
-                              <Badge variant="outline" className="mt-1 text-xs border-amber-500 text-amber-700">
-                                Q{index + 1}
-                              </Badge>
-                              <p className="text-slate-700 text-sm">{question}</p>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-4">
+                          <div className="w-3 h-3 bg-chart-1 rounded-full"></div>
+                          <h4 className="font-bold text-foreground text-lg">Key Insights</h4>
+                        </div>
+                        <div className="grid gap-4">
+                          {note.analysis.keyPoints.map((point, index) => (
+                            <div
+                              key={index}
+                              className="bg-card/50 rounded-xl p-5 border border-border/50 hover:border-accent/30 transition-colors duration-200"
+                            >
+                              <div className="flex items-start gap-4">
+                                <div className="w-8 h-8 bg-gradient-to-br from-accent to-accent/80 rounded-full flex items-center justify-center text-accent-foreground font-bold text-sm flex-shrink-0">
+                                  {index + 1}
+                                </div>
+                                <div className="space-y-2 flex-1">
+                                  <h5 className="font-bold text-foreground text-base">{point.title}</h5>
+                                  <p className="text-muted-foreground leading-relaxed">{point.description}</p>
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
                       </div>
-                    )}
-                  </CardContent>
+
+                      {note.analysis.projectAnalysis && (
+                        <div className="bg-gradient-to-r from-chart-2/10 to-chart-2/5 rounded-xl p-6 border border-chart-2/20">
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="w-3 h-3 bg-chart-2 rounded-full"></div>
+                            <h4 className="font-bold text-foreground text-lg">Project Analysis</h4>
+                          </div>
+                          <p className="text-foreground leading-relaxed text-base">{note.analysis.projectAnalysis}</p>
+                        </div>
+                      )}
+
+                      {note.analysis.constraintQuestions && note.analysis.constraintQuestions.length > 0 && (
+                        <div className="bg-gradient-to-r from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/10 rounded-xl p-6 border border-amber-200/50 dark:border-amber-700/30">
+                          <div className="flex items-center gap-2 mb-4">
+                            <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
+                            <h4 className="font-bold text-foreground text-lg">Critical Considerations</h4>
+                          </div>
+                          <div className="space-y-4">
+                            {note.analysis.constraintQuestions.map((question, index) => (
+                              <div key={index} className="flex items-start gap-4">
+                                <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-500 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+                                  Q{index + 1}
+                                </div>
+                                <p className="text-foreground flex-1 leading-relaxed font-medium">{question}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="pt-4 border-t border-border/50">
+                        <Button
+                          variant="outline"
+                          onClick={() => setExpandedNoteId(null)}
+                          className="w-full glass-effect hover:bg-accent/10 transition-all duration-200 py-3 font-semibold"
+                        >
+                          Collapse Note
+                        </Button>
+                      </div>
+                    </CardContent>
+                  ) : (
+                    <CardContent className="pt-0">
+                      <Button
+                        variant="outline"
+                        onClick={() => setExpandedNoteId(note.id)}
+                        className="w-full glass-effect hover:bg-accent/10 hover:border-accent/30 transition-all duration-200 py-3 font-semibold"
+                      >
+                        View Full Details
+                      </Button>
+                    </CardContent>
+                  )}
                 </Card>
               ))}
             </div>

@@ -1,6 +1,4 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { generateText } from "ai"
-import { groq } from "@ai-sdk/groq"
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,15 +25,41 @@ Key Points: ${keyPoints?.map((point: any, index: number) => `${index + 1}. ${poi
 
 Generate only the title, nothing else. Make it clear and professional.`
 
-    const { text: title } = await generateText({
-      model: groq("llama-3.1-8b-instant"),
-      prompt,
-      maxTokens: 50,
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.1-8b-instant",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        max_tokens: 50,
+        temperature: 0.7,
+      }),
     })
+
+    if (!response.ok) {
+      const errorData = await response.text()
+      console.error("[v0] Groq API error:", response.status, errorData)
+      throw new Error(`Groq API error: ${response.status} - ${errorData}`)
+    }
+
+    const data = await response.json()
+    const title = data.choices[0]?.message?.content?.trim()
+
+    if (!title) {
+      throw new Error("No title generated")
+    }
 
     console.log("[v0] Generated title:", title)
 
-    return NextResponse.json({ title: title.trim() })
+    return NextResponse.json({ title })
   } catch (error) {
     console.error("[v0] Title generation error:", error)
     return NextResponse.json({ error: "Failed to generate title" }, { status: 500 })
